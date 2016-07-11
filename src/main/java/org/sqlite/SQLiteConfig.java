@@ -32,6 +32,8 @@ import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Properties;
 
+import org.sqlite.core.StringEscaper;
+
 /**
  * SQLite Configuration
  *
@@ -129,8 +131,12 @@ public class SQLiteConfig
                 }
 
                 String value = pragmaTable.getProperty(key);
-                if (value != null) {
-                    stat.execute(String.format("pragma %s=%s", key, value));
+                if( value == null ) {
+                	stat.execute( String.format( "pragma %s", StringEscaper.escape( key ) ) );
+                } else {
+                	stat.execute( String.format( "pragma %s=%s",
+                                               StringEscaper.escape( key ),
+                                               StringEscaper.format( value ) ) );
                 }
             }
         }
@@ -244,6 +250,16 @@ public class SQLiteConfig
         SHARED_CACHE("shared_cache", "Enable SQLite Shared-Cache mode, native driver only", OnOff),
         LOAD_EXTENSION("enable_load_extension", "Enable SQLite load_extention() function, native driver only", OnOff),
 
+        // SQLCipher pragmas
+        KEY("key", "Key used for encrypting/decrypting database, as string 'passphrase' or hex value \"x'2DA8F...'\" ", null),
+        CIPHER("cipher", "Cipher used for encrypting/decrypting database. ie, 'aes-256-cfb'", null),
+        KDF_ITER("kdf_iter", "PBKDF2 iterations. Default is 64,000", null),
+        CIPHER_PAGE_SIZE("cipher_page_size", "Default page size is 1024", null),
+        REKEY("rekey", "Changes key on an existng database. Database must first be unlocked with key pragma.", null),
+        CIPHER_USE_HMAC("cipher_use_hmac", "Activate per-page HMAC to check if data has been tampered with. This is enabled by default for SQLCipher 2 dbs, and thus must be disabled for older databases.", OnOff ),
+        CIPHER_MIGRATE("cipher_migrate", "Migrates cipher settings to current version.", null),
+        CIPHER_PROFILE("cipher_profile", "Allows for profiling queries and their respective execution times in milliseconds. Argument specifies output.", new String[]{ "stdout", "stderr", "<filename>", "off"} ),
+        
         // Pragmas that can be set after opening the database
         CACHE_SIZE("cache_size"),
         CASE_SENSITIVE_LIKE("case_sensitive_like", OnOff),
@@ -430,10 +446,10 @@ public class SQLiteConfig
     }
 
     public static enum Encoding implements PragmaValue {
-        UTF8("'UTF-8'"),
-        UTF16("'UTF-16'"),
-        UTF16_LITTLE_ENDIAN("'UTF-16le'"),
-        UTF16_BIG_ENDIAN("'UTF-16be'"),
+        UTF8("UTF-8"),
+        UTF16("UTF-16"),
+        UTF16_LITTLE_ENDIAN("UTF-16le"),
+        UTF16_BIG_ENDIAN("UTF-16be"),
         UTF_8(UTF8),                    // UTF-8
         UTF_16(UTF16),                  // UTF-16
         UTF_16LE(UTF16_LITTLE_ENDIAN),  // UTF-16le
